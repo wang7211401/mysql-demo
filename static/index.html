@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        [v-cloak] {
+            display: none
+        }
+        
+        li {
+            line-height: 30px;
+        }
+        
+        .done span {
+            text-decoration: line-through;
+            color: #ccc;
+        }
+        
+        .page a {
+            margin: 15px;
+        }
+        
+        .page a.active {
+            color: red;
+        }
+        
+        .footer {
+            margin: 10px;
+        }
+        
+        .footer button.active {
+            background: red;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" v-cloak>
+        <h1>APP</h1>
+        <div>
+            <input type="text" v-model="newValue" @keyup.enter="add">
+            <button @click="add">添加</button>
+        </div>
+        <hr>
+        <ul>
+            <li v-for="todo in todos" :key="todo.id" :class="{done:todo.done}">
+                <input type="checkbox" :checked="todo.done" @click.prevent="toggle(todo.id,!todo.done)">
+                <span>#{{todo.id}}-{{todo.title}}</span>
+                <button @click="remove(todo.id)">删除</button>
+            </li>
+        </ul>
+        <div class="page">
+            <a href="" v-for="n of pages" :class="{active:n === page}" @click.prevent="changePage(n)">{{n}}</a>
+        </div>
+        <div class="footer">
+            <button :class="{active: type === ''}" @click="changeType('')">所有</button>
+            <button :class="{active: type === 1}" @click="changeType(1)">已完成</button>
+            <button :class="{active: type === 0}" @click="changeType(0)">未完成</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                todos: [],
+                newValue: '',
+                pages: 0,
+                page: 1,
+                prepage: 6,
+                type: ''
+            },
+            created() {
+                this.getTodo()
+            },
+            methods: {
+                getTodo() {
+                    fetch('/todos?type=' + this.type + '&page=' + this.page + '&prepage=' + this.prepage).then(str => str.json()).then(data => {
+                        this.todos = data.data.todos
+                        this.pages = data.data.pages
+                    })
+                },
+                add() {
+                    fetch('/add', {
+                        method: 'post',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            title: this.newValue
+                        })
+                    }).then(str => str.json()).then(data => {
+                        if (data.code == 0) {
+                            this.getTodo()
+                        }
+                        this.newValue = ""
+                    })
+                },
+                changePage(n) {
+                    this.page = n
+                    this.getTodo()
+                },
+                changeType(n) {
+                    this.type = n
+                    this.page = 1
+                    this.getTodo()
+                },
+                toggle(id, todo) {
+                    fetch('/toggle', {
+                        method: 'post',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id,
+                            todo: Number(todo)
+                        })
+                    }).then(str => str.json()).then(data => {
+                        if (data.code == 0) {
+                            this.getTodo()
+                        }
+                    })
+                },
+                remove(id) {
+                    fetch('/remove', {
+                        method: 'post',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id,
+                        })
+                    }).then(str => str.json()).then(data => {
+                        if (data.code == 0) {
+                            this.getTodo()
+                        }
+                    })
+                }
+            },
+        })
+    </script>
+</body>
+
+</html>
